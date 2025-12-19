@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEL 心情偵探實驗室</title>
+  
+  <script src="config.js"></script>
+
+  <style>
+    body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
+    h2 { color: #333; margin-bottom: 25px; }
+    .input-group { margin-bottom: 15px; text-align: left; }
+    label { font-size: 12px; color: #666; font-weight: bold; margin-left: 5px;}
+    input { width: 100%; padding: 12px; margin-top: 5px; border: 2px solid #e1e4e8; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+    .btn-primary { width: 100%; padding: 14px; margin-top: 10px; background: #4285F4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+    .btn-go { background-color: #34A853; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 10px; }
+    #msg { margin-top: 15px; font-size: 14px; min-height: 20px; }
+    
+    /* 教師按鈕區域 */
+    .admin-area { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #eee; }
+    .admin-trigger { font-size: 12px; color: #aaa; cursor: pointer; border: 1px solid #eee; padding: 5px 10px; border-radius: 20px; display:inline-block;}
+    
+    /* 紅色按鈕 */
+    #adminRealLink { display: none; background-color: #e55039; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="formTitle">🕵️‍♂️ 偵探登入</h2>
+    
+    <form id="authForm">
+      <div class="input-group"><label>帳號</label><input type="text" name="account" required></div>
+      <div class="input-group"><label>密碼</label><input type="password" name="password" required></div>
+      <button type="button" id="submitBtn" class="btn-primary" onclick="handleSubmit()">進入系統</button>
+    </form>
+    
+    <div id="msg"></div>
+    <div class="admin-area">
+      <div id="adminTrigger" class="admin-trigger" onclick="unlockAdmin()">🔧 教師專用通道</div>
+      <a id="adminRealLink" href="#" target="_top">🚀 點此進入後台</a>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = "123";
+
+    // ▼▼▼ 這裡改用變數，不要直接寫死網址 ▼▼▼
+    // 實際上傳 GitHub 時，網址會讀取 config.js (config.sample.js)
+    let MY_URL = "";
+    if (typeof CONFIG !== 'undefined' && CONFIG.API_ENDPOINT) {
+        MY_URL = CONFIG.API_ENDPOINT;
+    } else {
+        MY_URL = "YOUR_SCRIPT_URL_HERE"; // 預設佔位符
+    }
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    function unlockAdmin() {
+      let input = prompt("🔒 請輸入教師密碼：");
+      if (input === ADMIN_PASSWORD) {
+        
+        // 檢查使用者有沒有設定網址
+        if (MY_URL === "YOUR_SCRIPT_URL_HERE" || !MY_URL) {
+           alert("提醒：請先在 config.js 設定您的 GAS 網址");
+        }
+
+        let targetUrl = MY_URL.includes('?') ? MY_URL + '&page=admin' : MY_URL + '?page=admin';
+
+        let linkBtn = document.getElementById('adminRealLink');
+        linkBtn.href = targetUrl;
+        
+        document.getElementById('adminTrigger').style.display = 'none';
+        linkBtn.style.display = 'inline-block';
+        
+        alert("密碼正確！請點擊紅色按鈕。");
+      } else if (input !== null) {
+        alert("❌ 密碼錯誤");
+      }
+    }
+
+    function handleSubmit() {
+      const form = document.getElementById('authForm');
+      const msg = document.getElementById('msg');
+      if (!form.account.value || !form.password.value) { alert("請輸入完整資料"); return; }
+      
+      document.getElementById('submitBtn').innerText = "驗證中...";
+      
+      // ★ GitHub 展示用防呆機制 ★
+      if (typeof google === 'undefined') {
+          alert("⚠️ 此頁面目前在 GitHub 展示模式，無法直接連線 Google 資料庫。\n\n請將程式碼貼回 Google Apps Script 專案中執行，或設定 fetch API 模式。");
+          document.getElementById('submitBtn').innerText = "進入系統";
+          return;
+      }
+
+      // 正常的 GAS 登入流程
+      google.script.run.withSuccessHandler(res => {
+           if (res.result === 'success') {
+             msg.style.color = "green";
+             localStorage.setItem('studentName', res.name);
+             
+             let gameUrl = MY_URL.includes('?') ? MY_URL + '&page=game' : MY_URL + '?page=game';
+             
+             msg.innerHTML = `✅ 登入成功！<br><a href="${gameUrl}" target="_top" class="btn-go">👉 點此進入遊戲</a>`;
+             setTimeout(() => { window.top.location.href = gameUrl; }, 1000);
+           } else {
+             alert("帳號或密碼錯誤");
+             document.getElementById('submitBtn').innerText = "進入系統";
+           }
+        }).loginCheck(form);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教師後台管理</title>
+  
+  <script src="config.js"></script>
+
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab-btn { padding: 10px 20px; border: none; background: #e9ecef; color: #555; cursor: pointer; border-radius: 50px; font-weight: bold; }
+    .tab-btn.active { background: #4285F4; color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
+    td { padding: 12px; border-bottom: 1px solid #eee; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; margin-right: 5px; }
+    .btn-add { background: #4285F4; width: 100%; padding: 12px; font-size: 16px; margin-bottom: 15px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+    .modal-content { background: white; padding: 25px; width: 450px; border-radius: 10px; max-height: 90vh; overflow-y: auto; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+       <h2>🛠️ 教師後台</h2>
+       
+       <a href="index.html" style="color:#666;font-size:14px;text-decoration:none;font-weight:bold;border:1px solid #ddd;padding:5px 10px;border-radius:5px;">
+         🚪 回首頁
+       </a>
+       </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('questions')">📝 題庫管理</button>
+      <button class="tab-btn" onclick="switchTab('records')">📊 學生測驗成績</button>
+    </div>
+
+    <div id="tab-questions" class="tab-content active">
+      <button class="btn btn-add" onclick="openModal('add')">+ 新增情境題目</button>
+      <table id="qTable">
+        <thead><tr><th>ID</th><th>題目</th><th>圖片</th><th>操作</th></tr></thead>
+        <tbody id="listArea"><tr><td colspan="4" align="center">載入中...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="tab-records" class="tab-content">
+      <button class="btn btn-add" style="background:#20bf6b" onclick="loadRecords()">🔄 重新整理成績</button>
+      <table id="rTable">
+        <thead><tr><th>姓名</th><th>EQ 分數</th><th>時間</th></tr></thead>
+        <tbody id="recordArea"><tr><td colspan="3" align="center">請點擊按鈕載入...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">編輯</h3>
+      <form id="qForm">
+        <input type="hidden" name="qid">
+        <div class="form-group"><label>情境描述</label><textarea name="situation" rows="3"></textarea></div>
+        <div class="form-group"><label>圖片網址</label><input type="text" name="image"></div>
+        <hr>
+        <div class="form-group"><label>選項 A (分數)</label><input type="text" name="optA" placeholder="選項文字"><input type="number" name="scoreA" placeholder="分數"></div>
+        <div class="form-group"><label>選項 B (分數)</label><input type="text" name="optB" placeholder="選項文字"><input type="number" name="scoreB" placeholder="分數"></div>
+        <div class="form-group"><label>選項 C (分數)</label><input type="text" name="optC" placeholder="選項文字"><input type="number" name="scoreC" placeholder="分數"></div>
+        
+        <button type="button" class="btn" style="background:#20bf6b; width:100%; margin-top:15px;" onclick="saveData()">儲存</button>
+        <button type="button" class="btn" style="background:#ccc; width:100%; margin-top:8px; color:#333;" onclick="closeModal()">取消</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let allData = []; 
+    let mode = 'add';
+    
+    // --- API 呼叫工具 ---
+    function callApi(action, payload = {}) {
+        if(typeof CONFIG === 'undefined' || !CONFIG.API_ENDPOINT || CONFIG.API_ENDPOINT.includes("YOUR_SCRIPT_URL")) {
+            alert("⚠️ 請設定 config.js"); return Promise.reject("Config Error");
+        }
+        const data = { action: action, ...payload };
+        return fetch(CONFIG.API_ENDPOINT, { method: "POST", body: JSON.stringify(data) })
+               .then(res => res.json());
+    }
+
+    window.onload = function() { 
+      loadQuestions(); 
+    };
+    
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'records') loadRecords();
+    }
+    
+    // --- 載入題目 (使用 getQuestions API 回傳的物件格式) ---
+    function loadQuestions() {
+      const tbody = document.getElementById('listArea');
+      tbody.innerHTML = '<tr><td colspan="4" align="center">資料讀取中...</td></tr>';
+
+      callApi('getQuestions')
+        .then(res => {
+          tbody.innerHTML = '';
+          if(!res.data || res.data.length === 0) { 
+             tbody.innerHTML = '<tr><td colspan="4" align="center">無資料</td></tr>'; return; 
+          }
+          
+          allData = res.data; // 這裡存的是物件陣列 [{qid:.., situation:..}, ...]
+
+          allData.forEach(item => {
+            // 處理圖片顯示
+            let imgDisplay = item.image ? `<img src="${item.image}" height="30">` : '<span style="color:#ccc">無圖片</span>';
+            
+            tbody.innerHTML += `
+              <tr>
+                <td><small>${item.qid}</small></td>
+                <td>${item.situation}</td>
+                <td>${imgDisplay}</td>
+                <td>
+                  <button class="btn" style="background:#F6B93B" onclick="editRow('${item.qid}')">修</button>
+                  <button class="btn" style="background:#E55039" onclick="delRow('${item.qid}')">刪</button>
+                </td>
+              </tr>`;
+          });
+        })
+        .catch(err => {
+           console.error(err);
+           tbody.innerHTML = '<tr><td colspan="4" align="center" style="color:red">載入失敗</td></tr>';
+        });
+    }
+
+    // --- 載入成績 (原本的 getAllRecords 回傳的是 2D 陣列) ---
+    function loadRecords() {
+      const tbody = document.getElementById('recordArea'); 
+      tbody.innerHTML = '<tr><td colspan="3" align="center">載入中...</td></tr>';
+      
+      callApi('getAllRecords')
+        .then(res => {
+          tbody.innerHTML = '';
+          const data = res.data;
+          // data[0] 是標題，所以從 i=1 開始
+          if(!data || data.length <= 1) { 
+             tbody.innerHTML = '<tr><td colspan="3" align="center">無成績資料</td></tr>'; return; 
+          }
+          
+          for(let i=1; i<data.length; i++) {
+            // 注意：這裡是讀取試算表原始欄位
+            // row[1]=姓名, row[2]=分數, row[3]=時間
+            tbody.innerHTML += `
+              <tr>
+                <td><b>${data[i][1]}</b></td>
+                <td><span style="color:green;font-weight:bold">${data[i][2]}</span></td>
+                <td>${data[i][3]}</td>
+              </tr>`;
+          }
+        })
+        .catch(err => alert("載入失敗：" + err));
+    }
+
+    // --- 編輯功能 ---
+    function editRow(qid) {
+      mode = 'edit'; 
+      document.getElementById('modalTitle').innerText = "編輯題目"; 
+      document.getElementById('editModal').style.display = 'flex';
+      
+      // 從物件陣列中尋找
+      let row = allData.find(r => r.qid == qid);
+      if (!row) return;
+
+      let f = document.getElementById('qForm');
+      f.qid.value = row.qid;
+      f.image.value = row.image;
+      f.situation.value = row.situation;
+      
+      // 因為 API 回傳的結構是 options: [{text:.., score:..}, ...]
+      // 我們要把它拆開填回表單
+      if (row.options && row.options.length >= 3) {
+          f.optA.value = row.options[0].text; f.scoreA.value = row.options[0].score;
+          f.optB.value = row.options[1].text; f.scoreB.value = row.options[1].score;
+          f.optC.value = row.options[2].text; f.scoreC.value = row.options[2].score;
+      }
+    }
+
+    function openModal() { 
+      mode = 'add'; 
+      document.getElementById('modalTitle').innerText = "新增題目"; 
+      document.getElementById('editModal').style.display = 'flex'; 
+      document.getElementById('qForm').reset(); 
+    }
+    
+    function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+    // --- 刪除 ---
+    function delRow(qid) { 
+      if(confirm('確定要刪除這題嗎？')) {
+         callApi('deleteQuestion', { qid: qid }).then(() => loadQuestions());
+      }
+    }
+
+    // --- 儲存 (新增或修改) ---
+    function saveData() {
+      let f = document.getElementById('qForm');
+      
+      // 組合資料 (轉成平面格式傳給後端)
+      let data = { 
+        qid: f.qid.value, 
+        situation: f.situation.value, 
+        image: f.image.value, 
+        optA: f.optA.value, scoreA: f.scoreA.value, 
+        optB: f.optB.value, scoreB: f.scoreB.value, 
+        optC: f.optC.value, scoreC: f.scoreC.value 
+      };
+
+      const cb = (res) => { 
+          if(res.status === 'success') {
+             alert('儲存成功！'); 
+             closeModal(); 
+             loadQuestions(); 
+          } else {
+             alert('失敗：' + res.message);
+          }
+      };
+
+      if(mode === 'add') {
+         callApi('addQuestion', data).then(cb);
+      } else {
+         callApi('updateQuestion', data).then(cb);
+      }
+    }
+  </script>
+</body>
+</html>
