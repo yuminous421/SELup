@@ -9,7 +9,7 @@
   <script src="config.js"></script>
 
   <style>
-    /* === 遊戲介面美化 (維持原樣) === */
+    /* === 遊戲介面美化 === */
     body { background: #eef2f3; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; padding: 20px; display: flex; justify-content: center; min-height: 100vh; margin: 0; }
     .container { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
     
@@ -18,9 +18,6 @@
     .user-info { font-weight: bold; color: #555; display: flex; align-items: center; gap: 5px; }
     .logout-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; cursor: pointer; color: #666; font-size: 12px; transition: 0.2s; }
     .logout-btn:hover { background: #f8f9fa; color: #333; border-color: #ccc; }
-
-    /* 隱藏的分數條 (僅供內部計算) */
-    .score-debug { display: none; }
 
     /* 卡片容器 */
     .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; animation: fadeIn 0.5s; display: flex; flex-direction: column; }
@@ -97,7 +94,7 @@
     let questions = [];
     let qIndex = 0;
 
-    // --- 通用 API 呼叫函式 (與 index.html 相同) ---
+    // --- 通用 API 呼叫函式 ---
     function callApi(action, payload = {}) {
         if(typeof CONFIG === 'undefined' || !CONFIG.API_ENDPOINT || CONFIG.API_ENDPOINT.includes("YOUR_SCRIPT_URL")) {
             alert("⚠️ 設定檔錯誤：請檢查 config.js"); 
@@ -135,7 +132,8 @@
         })
         .catch(err => {
           console.error(err);
-          alert("連線失敗，請檢查網路。\n錯誤: " + err);
+          // 如果是因為網路問題或程式碼沒部署，會跳出提示
+          alert("連線失敗。\n請確認：\n1. config.js 網址是否正確\n2. GAS 是否已建立「新版本」部署");
           document.getElementById('loading').innerHTML = '<p style="color:red">無法載入題目</p>';
         });
     };
@@ -189,7 +187,7 @@
 
     function handleAnswer(score) {
       let scoreNum = Number(score);
-      if (isNaNscoreNum)) scoreNum = 0;
+      if (isNaN(scoreNum)) scoreNum = 0;
       currentScore += scoreNum;
       qIndex++;
       renderQuestion(); // 下一題
@@ -199,14 +197,14 @@
     function endGame() {
       const name = localStorage.getItem('studentName');
       
-         // 根據總分決定稱號 (範例分數線，可自行調整)
+      // 根據總分決定稱號 (範例分數線，可自行調整)
       let title = "";
       let desc = "";
       let imgUrl = "";
 
-      if (currentScore >= 200) {
-
-        title = "💖 溫暖的同理心大使";想，是用溫暖融化衝突的高手！大家都很喜歡跟你相處喔！";
+      if (currentScore >= 300) {
+        title = "💖 溫暖的同理心大使";
+        desc = "太棒了！你總能設身處地為他人著想，是用溫暖融化衝突的高手！大家都很喜歡跟你相處喔！";
         imgUrl = "https://cdn-icons-png.flaticon.com/512/4721/4721638.png"; 
       } else if (currentScore >= 100) {
         title = "🤝 智慧的溝通達人";
@@ -245,13 +243,9 @@
 
     // === 登出 (回到 index) ===
     function logout() {
-      // 1. (選擇性) 如果您希望登出時忘記學生名字，可以把下面這行註解打開
-      // localStorage.removeItem('studentName'); 
-      
-      // 2. 直接跳轉到 GitHub 的 index.html
+      // 回到 GitHub 的首頁
       window.location.href = 'index.html';
     }
   </script>
 </body>
-
 </html>
