@@ -17,13 +17,14 @@
     input { width: 100%; padding: 12px; margin-top: 5px; border: 2px solid #e1e4e8; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
     .btn-primary { width: 100%; padding: 14px; margin-top: 10px; background: #4285F4; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
     .btn-go { background-color: #34A853; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 10px; }
-    #msg { margin-top: 15px; font-size: 14px; min-height: 20px; }
     
-    /* 教師按鈕區域 */
+    /* 切換連結樣式 */
+    .toggle-link { margin-top: 20px; font-size: 14px; color: #5f6368; cursor: pointer; text-decoration: underline; }
+    .hidden { display: none; }
+    
+    #msg { margin-top: 15px; font-size: 14px; min-height: 20px; }
     .admin-area { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #eee; }
     .admin-trigger { font-size: 12px; color: #aaa; cursor: pointer; border: 1px solid #eee; padding: 5px 10px; border-radius: 20px; display:inline-block;}
-    
-    /* 紅色按鈕 */
     #adminRealLink { display: none; background-color: #e55039; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; margin-top: 10px; }
   </style>
 </head>
@@ -34,10 +35,15 @@
     <form id="authForm">
       <div class="input-group"><label>帳號</label><input type="text" id="account" required></div>
       <div class="input-group"><label>密碼</label><input type="password" id="password" required></div>
+      
+      <div id="nameGroup" class="input-group hidden"><label>姓名 (你的代號)</label><input type="text" id="name"></div>
+      
       <button type="button" id="submitBtn" class="btn-primary" onclick="handleSubmit()">進入系統</button>
     </form>
     
     <div id="msg"></div>
+    
+    <div class="toggle-link" onclick="toggleMode()">還沒有帳號？點此註冊</div>
 
     <div class="admin-area">
       <div id="adminTrigger" class="admin-trigger" onclick="unlockAdmin()">🔧 教師專用通道</div>
@@ -47,82 +53,96 @@
 
   <script>
     const ADMIN_PASSWORD = "123";
+    let isRegisterMode = false; // 狀態變數
 
-    // --- API 連線工具 ---
+    // API 連線工具
     function callApi(action, payload = {}) {
-        // 檢查是否有設定網址
         if(typeof CONFIG === 'undefined' || !CONFIG.API_ENDPOINT || CONFIG.API_ENDPOINT.includes("YOUR_SCRIPT_URL")) {
-            alert("⚠️ 設定錯誤：請檢查 GitHub 上的 config.js 檔案，網址尚未設定！"); 
+            alert("⚠️ 設定錯誤：請檢查 config.js，確認網址已設定！"); 
             return Promise.reject("Config Error");
         }
-
         const data = { action: action, ...payload };
-        
-        return fetch(CONFIG.API_ENDPOINT, {
-            method: "POST",
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json());
+        return fetch(CONFIG.API_ENDPOINT, { method: "POST", body: JSON.stringify(data) }).then(res => res.json());
     }
 
-    // --- 教師後台解鎖 ---
+    // --- 切換 登入/註冊 模式 ---
+    function toggleMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('msg').innerHTML = "";
+      document.getElementById('authForm').reset();
+      
+      if (isRegisterMode) {
+        document.getElementById('formTitle').innerText = "📝 新偵探報到";
+        document.getElementById('nameGroup').classList.remove('hidden');
+        document.getElementById('submitBtn').innerText = "確認註冊";
+        document.querySelector('.toggle-link').innerText = "已有帳號？返回登入";
+      } else {
+        document.getElementById('formTitle').innerText = "🕵️‍♂️ 偵探登入";
+        document.getElementById('nameGroup').classList.add('hidden');
+        document.getElementById('submitBtn').innerText = "進入系統";
+        document.querySelector('.toggle-link').innerText = "還沒有帳號？點此註冊";
+      }
+    }
+
+    // --- 送出表單 (登入或註冊) ---
+    function handleSubmit() {
+      const acc = document.getElementById('account').value;
+      const pwd = document.getElementById('password').value;
+      const name = document.getElementById('name').value;
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('msg');
+
+      if (!acc || !pwd) { alert("請輸入完整資料"); return; }
+      if (isRegisterMode && !name) { alert("註冊時請輸入姓名"); return; }
+      
+      btn.disabled = true;
+      btn.innerText = "處理中...";
+      msg.innerHTML = "";
+
+      if (isRegisterMode) {
+        // --- 註冊流程 ---
+        callApi('register', { account: acc, password: pwd, name: name })
+          .then(res => {
+             if (res.status === 'success') {
+               alert(res.message);
+               toggleMode(); // 註冊成功後，自動切換回登入模式
+             } else {
+               alert(res.message);
+             }
+             btn.disabled = false;
+             btn.innerText = "確認註冊";
+          });
+      } else {
+        // --- 登入流程 ---
+        callApi('login', { account: acc, password: pwd })
+          .then(res => {
+             if (res.status === 'success') {
+               msg.style.color = "green";
+               localStorage.setItem('studentName', res.name);
+               // 成功後跳轉到遊戲頁
+               msg.innerHTML = `✅ 登入成功！<br><a href="game.html" class="btn-go">👉 點此進入遊戲</a>`;
+               setTimeout(() => { window.location.href = "game.html"; }, 1000);
+             } else {
+               alert("帳號或密碼錯誤");
+               btn.disabled = false;
+               btn.innerText = "進入系統";
+             }
+          });
+      }
+    }
+
+    // 教師後台解鎖
     function unlockAdmin() {
       let input = prompt("🔒 請輸入教師密碼：");
       if (input === ADMIN_PASSWORD) {
-        
-        // ✅ 修改重點：直接跳轉到 GitHub 上的 admin.html，不跳去 Google
-        let targetUrl = "admin.html"; 
-
-        let linkBtn = document.getElementById('adminRealLink');
-        linkBtn.href = targetUrl;
-        
+        // 直接跳轉到 GitHub 的 admin.html
+        document.getElementById('adminRealLink').href = "admin.html";
         document.getElementById('adminTrigger').style.display = 'none';
-        linkBtn.style.display = 'inline-block';
-        
+        document.getElementById('adminRealLink').style.display = 'inline-block';
         alert("密碼正確！請點擊紅色按鈕。");
       } else if (input !== null) {
         alert("❌ 密碼錯誤");
       }
-    }
-
-    // --- 學生登入 ---
-    function handleSubmit() {
-      const acc = document.getElementById('account').value;
-      const pwd = document.getElementById('password').value;
-      const msg = document.getElementById('msg');
-      const btn = document.getElementById('submitBtn');
-
-      if (!acc || !pwd) { alert("請輸入完整資料"); return; }
-      
-      btn.innerText = "驗證中...";
-      btn.disabled = true;
-      msg.innerHTML = "";
-
-      // 改用 callApi (fetch) 發送請求
-      callApi('login', { account: acc, password: pwd })
-        .then(res => {
-           if (res.result === 'success' || res.status === 'success') { // 相容兩種回傳格式
-             msg.style.color = "green";
-             
-             // 記住學生名字
-             localStorage.setItem('studentName', res.name);
-             
-             // ✅ 修改重點：跳轉到 game.html，保持在 GitHub
-             msg.innerHTML = `✅ 登入成功！<br><a href="game.html" class="btn-go">👉 點此進入遊戲</a>`;
-             
-             setTimeout(() => { window.location.href = "game.html"; }, 1000);
-           } else {
-             alert("帳號或密碼錯誤");
-             btn.innerText = "進入系統";
-             btn.disabled = false;
-           }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("連線失敗，請檢查網路或確認 config.js 設定正確。");
-            btn.innerText = "進入系統";
-            btn.disabled = false;
-        });
     }
   </script>
 </body>
