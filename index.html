@@ -32,12 +32,13 @@
     <h2 id="formTitle">🕵️‍♂️ 偵探登入</h2>
     
     <form id="authForm">
-      <div class="input-group"><label>帳號</label><input type="text" name="account" required></div>
-      <div class="input-group"><label>密碼</label><input type="password" name="password" required></div>
+      <div class="input-group"><label>帳號</label><input type="text" id="account" required></div>
+      <div class="input-group"><label>密碼</label><input type="password" id="password" required></div>
       <button type="button" id="submitBtn" class="btn-primary" onclick="handleSubmit()">進入系統</button>
     </form>
     
     <div id="msg"></div>
+
     <div class="admin-area">
       <div id="adminTrigger" class="admin-trigger" onclick="unlockAdmin()">🔧 教師專用通道</div>
       <a id="adminRealLink" href="#" target="_top">🚀 點此進入後台</a>
@@ -47,30 +48,30 @@
   <script>
     const ADMIN_PASSWORD = "123";
 
-    // ▼▼▼ 這裡改用變數，不要直接寫死網址 ▼▼▼
-    // 實際上傳 GitHub 時，網址會讀取 config.js (config.sample.js)
-    let MY_URL = "";
-    if (typeof CONFIG !== 'undefined' && CONFIG.API_ENDPOINT) {
-        MY_URL = CONFIG.API_ENDPOINT;
-    } else {
-        MY_URL = "YOUR_SCRIPT_URL_HERE"; // 預設佔位符
-    }
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    // --- API 連線工具 ---
+    function callApi(action, payload = {}) {
+        // 檢查是否有設定網址
+        if(typeof CONFIG === 'undefined' || !CONFIG.API_ENDPOINT || CONFIG.API_ENDPOINT.includes("YOUR_SCRIPT_URL")) {
+            alert("⚠️ 設定錯誤：請檢查 GitHub 上的 config.js 檔案，網址尚未設定！"); 
+            return Promise.reject("Config Error");
+        }
 
-      function unlockAdmin() {
+        const data = { action: action, ...payload };
+        
+        return fetch(CONFIG.API_ENDPOINT, {
+            method: "POST",
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json());
+    }
+
+    // --- 教師後台解鎖 ---
+    function unlockAdmin() {
       let input = prompt("🔒 請輸入教師密碼：");
       if (input === ADMIN_PASSWORD) {
         
-        // --- 修改重點開始 ---
-        
-        // 舊的寫法 (會跳去 Google)：
-        // let targetUrl = MY_URL.includes('?') ? MY_URL + '&page=admin' : MY_URL + '?page=admin';
-        
-        // ✅ 新的寫法 (留在 GitHub)：
-        // 直接跳轉到同一個資料夾下的 admin.html 檔案
+        // ✅ 修改重點：直接跳轉到 GitHub 上的 admin.html，不跳去 Google
         let targetUrl = "admin.html"; 
-
-        // --- 修改重點結束 ---
 
         let linkBtn = document.getElementById('adminRealLink');
         linkBtn.href = targetUrl;
@@ -83,37 +84,46 @@
         alert("❌ 密碼錯誤");
       }
     }
-    function handleSubmit() {
-      const form = document.getElementById('authForm');
-      const msg = document.getElementById('msg');
-      if (!form.account.value || !form.password.value) { alert("請輸入完整資料"); return; }
-      
-      document.getElementById('submitBtn').innerText = "驗證中...";
-      
-      // ★ GitHub 展示用防呆機制 ★
-      if (typeof google === 'undefined') {
-          alert("⚠️ 此頁面目前在 GitHub 展示模式，無法直接連線 Google 資料庫。\n\n請將程式碼貼回 Google Apps Script 專案中執行，或設定 fetch API 模式。");
-          document.getElementById('submitBtn').innerText = "進入系統";
-          return;
-      }
 
-      // 正常的 GAS 登入流程
-      google.script.run.withSuccessHandler(res => {
-           if (res.result === 'success') {
+    // --- 學生登入 ---
+    function handleSubmit() {
+      const acc = document.getElementById('account').value;
+      const pwd = document.getElementById('password').value;
+      const msg = document.getElementById('msg');
+      const btn = document.getElementById('submitBtn');
+
+      if (!acc || !pwd) { alert("請輸入完整資料"); return; }
+      
+      btn.innerText = "驗證中...";
+      btn.disabled = true;
+      msg.innerHTML = "";
+
+      // 改用 callApi (fetch) 發送請求
+      callApi('login', { account: acc, password: pwd })
+        .then(res => {
+           if (res.result === 'success' || res.status === 'success') { // 相容兩種回傳格式
              msg.style.color = "green";
+             
+             // 記住學生名字
              localStorage.setItem('studentName', res.name);
              
-             let gameUrl = MY_URL.includes('?') ? MY_URL + '&page=game' : MY_URL + '?page=game';
+             // ✅ 修改重點：跳轉到 game.html，保持在 GitHub
+             msg.innerHTML = `✅ 登入成功！<br><a href="game.html" class="btn-go">👉 點此進入遊戲</a>`;
              
-             msg.innerHTML = `✅ 登入成功！<br><a href="${gameUrl}" target="_top" class="btn-go">👉 點此進入遊戲</a>`;
-             setTimeout(() => { window.top.location.href = gameUrl; }, 1000);
+             setTimeout(() => { window.location.href = "game.html"; }, 1000);
            } else {
              alert("帳號或密碼錯誤");
-             document.getElementById('submitBtn').innerText = "進入系統";
+             btn.innerText = "進入系統";
+             btn.disabled = false;
            }
-        }).loginCheck(form);
+        })
+        .catch(err => {
+            console.error(err);
+            alert("連線失敗，請檢查網路或確認 config.js 設定正確。");
+            btn.innerText = "進入系統";
+            btn.disabled = false;
+        });
     }
   </script>
 </body>
-
 </html>
