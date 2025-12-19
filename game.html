@@ -5,63 +5,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>情境模擬挑戰</title>
-  
   <script src="config.js"></script>
-
   <style>
-    /* === 遊戲介面美化 === */
-    body { background: #eef2f3; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; padding: 20px; display: flex; justify-content: center; min-height: 100vh; margin: 0; }
+    body { background: #eef2f3; font-family: 'Segoe UI', sans-serif; padding: 20px; display: flex; justify-content: center; min-height: 100vh; margin: 0; }
     .container { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
-    
-    /* 頂部資訊列 */
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; }
-    .user-info { font-weight: bold; color: #555; display: flex; align-items: center; gap: 5px; }
-    .logout-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; cursor: pointer; color: #666; font-size: 12px; transition: 0.2s; }
-    .logout-btn:hover { background: #f8f9fa; color: #333; border-color: #ccc; }
-
-    /* 卡片容器 */
-    .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; animation: fadeIn 0.5s; display: flex; flex-direction: column; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* 圖片區域 */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .logout-btn { background: white; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; cursor: pointer; color: #666; font-size: 12px; }
+    .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; display: flex; flex-direction: column; }
     .img-area { width: 100%; height: 220px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
-    .img-area img:hover { transform: scale(1.05); }
-
-    /* 內容區域 */
+    .img-area img { width: 100%; height: 100%; object-fit: cover; }
     .content { padding: 25px 20px; flex-grow: 1; }
-    h3 { margin: 0 0 20px 0; color: #333; font-size: 19px; line-height: 1.5; font-weight: 600; text-align: justify; }
-    
-    /* 選項按鈕 */
+    h3 { margin: 0 0 20px 0; color: #333; font-size: 19px; line-height: 1.5; text-align: justify; }
     .btn-group { display: flex; flex-direction: column; gap: 12px; }
-    .option-btn { 
-      padding: 16px; 
-      border: 2px solid #f1f3f4; 
-      background: white; 
-      border-radius: 12px; 
-      cursor: pointer; 
-      font-size: 15px; 
-      color: #444; 
-      transition: all 0.2s; 
-      text-align: left;
-      font-weight: 500;
-      position: relative;
-      overflow: hidden;
-    }
-    .option-btn:hover { border-color: #4285F4; background: #f0f7ff; color: #1a73e8; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(66, 133, 244, 0.15); }
-    .option-btn:active { transform: scale(0.98); }
-
-    /* 載入畫面 */
+    .option-btn { padding: 16px; border: 2px solid #f1f3f4; background: white; border-radius: 12px; cursor: pointer; font-size: 15px; color: #444; text-align: left; }
+    .option-btn:hover { border-color: #4285F4; background: #f0f7ff; color: #1a73e8; }
     #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
     .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4285F4; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    /* 結算畫面專用 */
-    .result-icon { width: 140px; height: 140px; margin: 20px auto; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
-    .result-title { font-size: 26px; color: #1a73e8; font-weight: 800; margin: 10px 0; }
-    .result-desc { color: #5f6368; font-size: 16px; line-height: 1.6; padding: 0 20px; margin-bottom: 30px; }
-    .finish-btn { background: #1a73e8; color: white; padding: 12px 30px; border-radius: 50px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3); transition: 0.2s; }
-    .finish-btn:hover { background: #1557b0; transform: translateY(-2px); }
+    .result-icon { width: 140px; height: 140px; margin: 20px auto; display: block; }
+    .finish-btn { background: #1a73e8; color: white; padding: 12px 30px; border-radius: 50px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -83,8 +45,7 @@
       </div>
       <div class="content">
         <h3 id="qText">題目讀取中...</h3>
-        <div class="btn-group" id="btnArea">
-          </div>
+        <div class="btn-group" id="btnArea"></div>
       </div>
     </div>
   </div>
@@ -94,34 +55,24 @@
     let questions = [];
     let qIndex = 0;
 
-    // --- 通用 API 呼叫函式 ---
+    // API 連線工具
     function callApi(action, payload = {}) {
         if(typeof CONFIG === 'undefined' || !CONFIG.API_ENDPOINT || CONFIG.API_ENDPOINT.includes("YOUR_SCRIPT_URL")) {
-            alert("⚠️ 設定檔錯誤：請檢查 config.js"); 
-            return Promise.reject("Config Error");
+            alert("⚠️ 設定檔錯誤：請檢查 config.js"); return Promise.reject("Config Error");
         }
-
         const data = { action: action, ...payload };
-        
-        return fetch(CONFIG.API_ENDPOINT, {
-            method: "POST",
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json());
+        return fetch(CONFIG.API_ENDPOINT, { method: "POST", body: JSON.stringify(data) }).then(res => res.json());
     }
-    // -------------------------------------------
 
     window.onload = function() {
-      // 1. 檢查是否有登入 (localStorage)
       const name = localStorage.getItem('studentName');
       if (!name) {
           alert("請先登入！");
-          window.location.href = 'index.html'; // 跳回首頁
+          window.location.href = 'index.html';
           return;
       }
       document.getElementById('sName').innerText = name;
       
-      // 2. 呼叫 API 取得題目
       callApi('getQuestions')
         .then(res => {
             if (res.status === 'success') {
@@ -132,56 +83,46 @@
         })
         .catch(err => {
           console.error(err);
-          // 如果是因為網路問題或程式碼沒部署，會跳出提示
-          alert("連線失敗。\n請確認：\n1. config.js 網址是否正確\n2. GAS 是否已建立「新版本」部署");
+          alert("連線失敗，請重新整理網頁。\n(請確認 config.js 網址是否正確，且後端已建立新版本)");
           document.getElementById('loading').innerHTML = '<p style="color:red">無法載入題目</p>';
         });
     };
 
     function startGame(data) {
       if (!data || data.length === 0) {
-        alert("資料庫目前沒有題目喔！請老師先去後台新增。");
+        alert("目前沒有題目喔！");
         document.getElementById('loading').style.display = 'none';
         return;
       }
       questions = data;
-      // 隱藏載入畫面，顯示遊戲區
       document.getElementById('loading').style.display = 'none';
       document.getElementById('gameArea').style.display = 'flex';
       renderQuestion();
     }
 
     function renderQuestion() {
-      // 如果題目做完了，進入結算
       if (qIndex >= questions.length) {
         endGame();
         return;
       }
-
       const q = questions[qIndex];
-      // 更新文字與圖片
       document.getElementById('qText').innerText = (qIndex + 1) + ". " + q.situation;
       
-      // 圖片處理
       let imgUrl = q.image;
       if (!imgUrl || imgUrl.trim() === "") imgUrl = "https://dummyimage.com/600x400/e0e0e0/999999&text=Scenario";
       document.getElementById('qImg').src = imgUrl;
 
-      // 生成選項按鈕
       const btnArea = document.getElementById('btnArea');
-      btnArea.innerHTML = ''; // 清空舊選項
+      btnArea.innerHTML = '';
 
       if (q.options && q.options.length > 0) {
         q.options.forEach(opt => {
           let btn = document.createElement('button');
           btn.className = 'option-btn';
           btn.innerText = opt.text; 
-          // 點擊後計算分數並跳下一題
           btn.onclick = function() { handleAnswer(opt.score); };
           btnArea.appendChild(btn);
         });
-      } else {
-        btnArea.innerHTML = '<p style="color:red">⚠️ 這題沒有設定選項</p>';
       }
     }
 
@@ -190,60 +131,40 @@
       if (isNaN(scoreNum)) scoreNum = 0;
       currentScore += scoreNum;
       qIndex++;
-      renderQuestion(); // 下一題
+      renderQuestion();
     }
 
-    // === 結算畫面 ===
     function endGame() {
       const name = localStorage.getItem('studentName');
-      
-      // 根據總分決定稱號 (範例分數線，可自行調整)
-      let title = "";
-      let desc = "";
-      let imgUrl = "";
+      // 這裡可以自訂分數與評語
+      let title = "完成挑戰！";
+      let desc = "恭喜你完成了所有的情境模擬。";
+      let imgUrl = "https://cdn-icons-png.flaticon.com/512/4721/4721638.png"; 
 
-      if (currentScore >= 300) {
-        title = "💖 溫暖的同理心大使";
-        desc = "太棒了！你總能設身處地為他人著想，是用溫暖融化衝突的高手！大家都很喜歡跟你相處喔！";
-        imgUrl = "https://cdn-icons-png.flaticon.com/512/4721/4721638.png"; 
-      } else if (currentScore >= 100) {
-        title = "🤝 智慧的溝通達人";
-        desc = "面對問題時，你懂得冷靜思考並尋求解決辦法。繼續保持這份智慧，你會越來越棒！";
-        imgUrl = "https://cdn-icons-png.flaticon.com/512/3588/3588656.png"; 
-      } else {
-        title = "🌱 正在茁壯的沈穩思考者";
-        desc = "你有獨特的想法和個性。試著多表達出一點心裡的感受，大家會更了解你喔！";
-        imgUrl = "https://cdn-icons-png.flaticon.com/512/4023/4023094.png"; 
-      }
+      if (currentScore >= 300) { title = "💖 溫暖的同理心大使"; }
+      else if (currentScore >= 100) { title = "🤝 智慧的溝通達人"; }
+      else { title = "🌱 正在茁壯的思考者"; }
 
-      // 替換掉卡片內容，顯示結果
       document.getElementById('cardBox').innerHTML = `
         <div style="padding:40px 20px;">
           <img src="${imgUrl}" class="result-icon">
           <h2 class="result-title">${title}</h2>
           <p class="result-desc">${desc}</p>
           <div style="margin-top:20px;">
-            <p style="font-size:12px; color:#999; margin-bottom:15px;" id="saveMsg">⏳ 正在儲存冒險紀錄...</p>
-            <button class="finish-btn" onclick="logout()">完成任務，回到首頁</button>
+            <p style="font-size:12px; color:#999; margin-bottom:15px;" id="saveMsg">⏳ 正在儲存紀錄...</p>
+            <button class="finish-btn" onclick="logout()">回首頁</button>
           </div>
         </div>
       `;
       
-      // 背景儲存分數
       callApi('saveRecord', { name: name, score: currentScore })
         .then(res => {
-            document.getElementById('saveMsg').innerText = "✅ 冒險紀錄已安全保存";
+            document.getElementById('saveMsg').innerText = "✅ 紀錄已保存";
             document.getElementById('saveMsg').style.color = "green";
-        })
-        .catch(err => {
-            document.getElementById('saveMsg').innerText = "⚠️ 紀錄儲存失敗，請截圖給老師";
-            document.getElementById('saveMsg').style.color = "red";
         });
     }
 
-    // === 登出 (回到 index) ===
     function logout() {
-      // 回到 GitHub 的首頁
       window.location.href = 'index.html';
     }
   </script>
