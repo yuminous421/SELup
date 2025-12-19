@@ -57,16 +57,20 @@
     }
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
-    function unlockAdmin() {
+      function unlockAdmin() {
       let input = prompt("🔒 請輸入教師密碼：");
       if (input === ADMIN_PASSWORD) {
         
-        // 檢查使用者有沒有設定網址
-        if (MY_URL === "YOUR_SCRIPT_URL_HERE" || !MY_URL) {
-           alert("提醒：請先在 config.js 設定您的 GAS 網址");
-        }
+        // --- 修改重點開始 ---
+        
+        // 舊的寫法 (會跳去 Google)：
+        // let targetUrl = MY_URL.includes('?') ? MY_URL + '&page=admin' : MY_URL + '?page=admin';
+        
+        // ✅ 新的寫法 (留在 GitHub)：
+        // 直接跳轉到同一個資料夾下的 admin.html 檔案
+        let targetUrl = "admin.html"; 
 
-        let targetUrl = MY_URL.includes('?') ? MY_URL + '&page=admin' : MY_URL + '?page=admin';
+        // --- 修改重點結束 ---
 
         let linkBtn = document.getElementById('adminRealLink');
         linkBtn.href = targetUrl;
@@ -79,7 +83,6 @@
         alert("❌ 密碼錯誤");
       }
     }
-
     function handleSubmit() {
       const form = document.getElementById('authForm');
       const msg = document.getElementById('msg');
@@ -112,4 +115,5 @@
     }
   </script>
 </body>
+
 </html>
